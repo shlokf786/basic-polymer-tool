@@ -19,5 +19,8 @@
   "homepage": "https://github.com/shlokk9763/basic-polymer-tool#readme",
   "devDependencies": {
     "electron": "^12.0.2"
+  },
+  "dependencies": {
+    "bootstrap": "^5.0.0-beta3"
   }
 }
