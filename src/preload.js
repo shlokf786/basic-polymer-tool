@@ -1,4 +1,11 @@
 const { contextBridge, ipcRenderer, Notification } = require("electron");
+const fs = require("fs");
+const path = require("path");
+const chokidar = require('chokidar');
+
+var watcher;
+var originalPath = null;
+
 
 window.addEventListener("DOMContentLoaded", () => {
   const replaceText = (selector, text) => {
@@ -11,34 +18,50 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-function showNotification(Notif_Title, Notif_Body) {
-  console.log("inside", Notif_Title, Notif_Body);
-  //   const myNotification = new remote.Notification(Notif_Title, {
-  //     body: Notif_Body,
-  //   });
-  const notification = {
-    title: Notif_Title,
-    body: Notif_Body,
-  };
-  new Notification(notification).show();
+function setTheWatch(dirPath){
+    if(watcher) watcher.close();
+
+    watcher = chokidar.watch(dirPath, {
+        ignored: /(^|[\/\\])\../, // ignore dotfiles
+        persistent: true,
+        ignoreInitial: true,
+    });
+    watcher
+    .on('add', (path, stats) => window.dispatchEvent(new CustomEvent("file-added",{detail:path})))
+    .on('change', (path, stats) => console.log(`File ${path} has been changed`))
+    .on('unlink', path => console.log(`File ${path} has been removed`))
+    .on('addDir', (path, stats) => console.log(`Directory ${path} has been added`))
+    .on('unlinkDir', path => console.log(`Directory ${path} has been removed`))
+    .on('error', error => console.log(`Watcher error: ${error}`))
+}
+
+
+function getAllFiles(dirPath, arrayOfFiles) {
+  files = fs.readdirSync(dirPath);
+  originalPath = originalPath ? originalPath : dirPath;
+  arrayOfFiles = arrayOfFiles || [];
+
+  files.forEach(function (file) {
+    let filestat = fs.statSync(path.join(dirPath, file));
+    if (filestat.isDirectory()) {
+      arrayOfFiles = getAllFiles(path.join(dirPath, file), arrayOfFiles);
+    } else {
+      let FullPath = path.join(dirPath, file);
+      arrayOfFiles.push({
+        path: FullPath.substr(originalPath.length),
+        stat: filestat,
+      });
+    }
+  });
+  return arrayOfFiles;
 }
 
 contextBridge.exposeInMainWorld("api", {
-  doThing: () => ipcRenderer.send("do-a-thing"),
-  //   myPromises: [Promise.resolve(), Promise.reject(new Error("whoops"))],
-  showNotification: (title, body) => showNotification(title, body),
-  anAsyncFunction: async () => 123,
-  data: {
-    myFlags: ["a", "b", "c"],
-    bootTime: 1234,
+  showNotification: (title, body) =>
+    ipcRenderer.send("show-notification", { title: title, body: body }),
+  defaultData: {
+    polymerVersion: 1,
   },
-  nestedAPI: {
-    evenDeeper: {
-      youCanDoThisAsMuchAsYouWant: {
-        fn: () => ({
-          returnData: 123,
-        }),
-      },
-    },
-  },
+  getFileList: (dirPath) => getAllFiles(dirPath),
+  setTheWatchOn: (dirPath) => setTheWatch(dirPath),
 });

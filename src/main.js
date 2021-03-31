@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Notification } = require("electron");
+const { app, BrowserWindow, Notification, ipcMain } = require("electron");
 const path = require("path");
 
 function createWindow() {
@@ -22,8 +22,6 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
-
-  showNotification();
 });
 
 app.on("window-all-closed", () => {
@@ -32,10 +30,15 @@ app.on("window-all-closed", () => {
   }
 });
 
-function showNotification() {
+ipcMain.on('show-notification',(event, args) => {
+    showNotification(args.title,args.body);
+    // console.log(args);
+})
+
+function showNotification(ntitle,nbody) {
   const notification = {
-    title: "Basic Notification",
-    body: "Notification from the Main process",
+    title: ntitle,
+    body: nbody,
   };
   new Notification(notification).show();
 }
