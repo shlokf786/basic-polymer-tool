@@ -30,15 +30,10 @@ app.on("window-all-closed", () => {
   }
 });
 
-ipcMain.on('show-notification',(event, args) => {
-    showNotification(args.title,args.body);
-    // console.log(args);
-})
-
-function showNotification(ntitle,nbody) {
+ipcMain.on("show-notification", (event, args) => {
   const notification = {
-    title: ntitle,
-    body: nbody,
+    title: args.title,
+    body: args.body,
   };
   new Notification(notification).show();
-}
+});

@@ -2,7 +2,9 @@ const { contextBridge, ipcRenderer, Notification } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const chokidar = require("chokidar");
-// const FileItem = require("./fileItem");
+const fileItem = require("./fileItem");
+console.log( fileItem.FileItem('a','b','c'));
+console.log( fileItem.FileItem('d','e','f'));
 
 var watcher;
 var originalPath = null;
@@ -25,6 +27,8 @@ function setTheWatch(dirPath) {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: true,
+    alwaysStat:true,
+    awaitWriteFinish:true,
   });
   watcher
     .on("add", (path, stats) =>
@@ -41,10 +45,10 @@ function setTheWatch(dirPath) {
         })
       )
     )
-    .on("unlink", (path) =>
+    .on("unlink", (path,stats) =>
       window.dispatchEvent(
         new CustomEvent("file-removed", {
-          detail: {fullPath:path, path:path.substr(originalPath.length), stats:null},
+          detail: {fullPath:path, path:path.substr(originalPath.length), stats:stats},
         })
       )
     )
