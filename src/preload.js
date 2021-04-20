@@ -2,23 +2,21 @@ const { contextBridge, ipcRenderer, Notification } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const chokidar = require("chokidar");
-const fileItem = require("./fileItem");
-console.log( fileItem.FileItem('a','b','c'));
-console.log( fileItem.FileItem('d','e','f'));
+const md5 = require("md5");
 
 var watcher;
 var originalPath = null;
 
-window.addEventListener("DOMContentLoaded", () => {
-  const replaceText = (selector, text) => {
-    const element = document.getElementById(selector);
-    if (element) element.innerText = text;
-  };
+// window.addEventListener("DOMContentLoaded", () => {
+//   const replaceText = (selector, text) => {
+//     const element = document.getElementById(selector);
+//     if (element) element.innerText = text;
+//   };
 
-  for (const type of ["chrome", "node", "electron"]) {
-    replaceText(`${type}-version`, process.versions[type]);
-  }
-});
+//   for (const type of ["chrome", "node", "electron"]) {
+//     replaceText(`${type}-version`, process.versions[type]);
+//   }
+// });
 
 function setTheWatch(dirPath) {
   if (watcher) watcher.close();
@@ -27,28 +25,42 @@ function setTheWatch(dirPath) {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: true,
-    alwaysStat:true,
-    awaitWriteFinish:true,
+    alwaysStat: true,
+    awaitWriteFinish: true,
   });
   watcher
     .on("add", (path, stats) =>
       window.dispatchEvent(
         new CustomEvent("file-added", {
-          detail: {fullPath:path, path:path.substr(originalPath.length), stats:stats},
+          detail: {
+            fullPath: path,
+            path: path.substr(originalPath.length),
+            stats: stats,
+            hashCode: String(md5(path)),
+          },
         })
       )
     )
     .on("change", (path, stats) =>
       window.dispatchEvent(
         new CustomEvent("file-changed", {
-          detail: {fullPath:path, path:path.substr(originalPath.length), stats:stats},
+          detail: {
+            fullPath: path,
+            path: path.substr(originalPath.length),
+            stats: stats,
+            hashCode: String(md5(path)),
+          },
         })
       )
     )
-    .on("unlink", (path,stats) =>
+    .on("unlink", (path) =>
       window.dispatchEvent(
         new CustomEvent("file-removed", {
-          detail: {fullPath:path, path:path.substr(originalPath.length), stats:stats},
+          detail: {
+            fullPath: path,
+            path: path.substr(originalPath.length),
+            hashCode: String(md5(path)),
+          },
         })
       )
     )
@@ -71,6 +83,7 @@ function getAllFiles(dirPath, arrayOfFiles) {
         fullPath: path.join(dirPath, file),
         path: path.join(dirPath, file).substr(originalPath.length),
         stats: filestat,
+        hashCode: String(md5(path.join(dirPath, file))),
       });
     }
   });
@@ -87,4 +100,5 @@ contextBridge.exposeInMainWorld("api", {
     return getAllFiles(dirPath);
   },
   setTheWatchOn: (dirPath) => setTheWatch(dirPath),
+  hashCode: (str) => String(md5(str)),
 });

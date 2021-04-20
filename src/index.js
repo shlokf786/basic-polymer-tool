@@ -1,5 +1,3 @@
-var fileListOj = {};
-var changedFileList = {};
 window.api.showNotification(
   "Basic Notification",
   "Notification from the Render process"
@@ -37,16 +35,17 @@ function showHideBasicPassword() {
   showHideBasicPasswordState = !showHideBasicPasswordState;
 }
 
-function fileItemDom(fullPath, relativePath, stats, isChanged) {
+function fileItemDom(file) {
   let div = document.createElement("div");
   div.className = "list-group-item";
-  div.id = fullPath;
+  div.id = file.hashCode;
+  console.log(file.hashCode);
 
   let checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = false;
 
-  let textNode = document.createTextNode(relativePath);
+  let textNode = document.createTextNode(file.path);
 
   div.appendChild(checkbox);
   div.appendChild(textNode);
@@ -70,38 +69,35 @@ function refreshFileList() {
   let fileList = window.api.getFileList(dirLocation.value);
 
   fileList.forEach((file) => {
-    listGroup.appendChild(fileItemDom(file.fullPath, file.path, file.stats));
+    listGroup.appendChild(fileItemDom(file));
   });
 }
 window.addEventListener("file-added", (data) => {
   if (data.detail) {
     let listGroup = document.querySelector("#fileListGroup");
     listGroup.appendChild(
-      fileItemDom(data.detail.fullPath, data.detail.path, data.detail.stats)
+      fileItemDom({
+        fullPath: data.detail.fullPath,
+        path: data.detail.path,
+        stats: data.detail.stats,
+      })
     );
   }
 });
 
 window.addEventListener("file-removed", (data) => {
   if (data.detail) {
-    let listGroup = document.querySelector("#fileListGroup");
-    var elementToRemove = [...listGroup.children].filter(
-      (t) => t.id === data.detail.fullPath
-    )[0];
+    let elementToRemove = document.getElementById(id);
     if (elementToRemove) elementToRemove.remove();
   }
 });
 
 window.addEventListener("file-changed", (data) => {
   if (data.detail) {
-    let listGroup = document.querySelector("#fileListGroup");
-    var elementChanged = [...listGroup.children].filter(
-      (t) => t.id === data.detail.fullPath
-    )[0];
+    let id = data.detail.hashCode;
+    let elementChanged = document.getElementById(id);
     if (elementChanged) elementChanged.children[0].checked = true;
   }
 });
 
-function deployFiles() {
-
-}
+function deployFiles() {}
